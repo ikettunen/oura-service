@@ -1,0 +1,65 @@
+# Oura Service deployment workflow for EC2 self-hosted runner
+# Deploys Node.js service to EC2 and restarts with PM2
+
+name: Deploy Oura Service to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js 22
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+    
+    - name: Verify Node.js version
+      run: |
+        node --version
+        npm --version
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Deploy to EC2
+      run: |
+        # Backup current version
+        if [ -d ~/oura-service ]; then
+          cp -r ~/oura-service ~/oura-service.backup
+        fi
+        
+        # Copy new files (excluding node_modules and .git)
+        rsync -av --exclude='node_modules' --exclude='.git' --exclude='logs' --exclude='data' --exclude='tests' ./ ~/oura-service/
+        
+        # Install dependencies in target directory
+        cd ~/oura-service
+        npm install --production
+        
+        # Create data directory if it doesn't exist
+        mkdir -p data
+        
+        echo "Deployed to ~/oura-service"
+    
+    - name: Restart service with PM2
+      run: |
+        cd ~/oura-service
+        pm2 restart oura-service || pm2 start src/server.js --name oura-service
+        pm2 save
+    
+    - name: Deployment Summary
+      run: |
+        echo "✅ Oura Service deployed successfully!"
+        echo "🌐 Service URL: http://51.20.164.143:3011"
+        echo "📁 Deployed to: ~/oura-service"
+        echo ""
+        echo "PM2 Status:"
+        pm2 list | grep oura-service
