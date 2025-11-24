@@ -1,0 +1,32 @@
+{
+  "name": "oura-service",
+  "version": "1.0.0",
+  "description": "Oura Ring integration service for patient health data",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --coverage --verbose",
+    "test:watch": "jest --watch"
+  },
+  "keywords": ["oura", "health", "wearables", "api"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-pino-logger": "^7.0.0",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.3.2",
+    "pino": "^8.16.2",
+    "pino-http": "^8.5.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "pino-pretty": "^10.2.0",
+    "supertest": "^6.3.3"
+  }
+}

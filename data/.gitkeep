@@ -1,0 +1,2 @@
+# This directory stores Oura API keys when Redis is not available
+# The oura-keys.json file will be created automatically
