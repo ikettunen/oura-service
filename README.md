@@ -27,6 +27,8 @@ Body: {
 }
 ```
 
+**Demo Mode**: Use `"apiKey": "OURA_DEMO_KEY"` to link with mock data for testing without a real Oura account.
+
 ### Get Patient Data
 ```
 GET /api/oura/patient/:patientId
@@ -36,6 +38,34 @@ Query: startDate, endDate (optional, defaults to last 7 days)
 ### Get Patient Summary
 ```
 GET /api/oura/patient/:patientId/summary
+```
+
+### Get Batch Patient Summaries
+```
+POST /api/oura/patients/batch/summary
+Body: {
+  "patientIds": ["uuid1", "uuid2", "uuid3"]
+}
+Response: {
+  "data": [
+    {
+      "patientId": "uuid1",
+      "period": "7 days",
+      "summary": {
+        "averageSteps": 8714,
+        "averageSleepScore": 83,
+        "averageReadinessScore": 78,
+        "totalDays": 7
+      }
+    }
+  ],
+  "errors": [
+    {
+      "patientId": "uuid2",
+      "error": "Patient not linked to Oura account"
+    }
+  ]
+}
 ```
 
 ### Unlink Patient
@@ -114,6 +144,24 @@ Oura uses webhooks for real-time data updates. To set up:
 - Redis: API keys and cached data
 - Fallback: File-based storage in `data/oura-keys.json`
 
+## Demo Mode
+
+For testing without a real Oura account, use the special API key `OURA_DEMO_KEY`:
+
+```bash
+curl -X POST http://localhost:3011/api/oura/link \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patientId": "demo-patient-001",
+    "apiKey": "OURA_DEMO_KEY"
+  }'
+```
+
+This will return realistic mock data for all endpoints:
+- Activity: 6,000-11,000 steps, 400-700 active calories, 70-100 activity score
+- Sleep: 7-9 hours total, with deep/REM/light sleep breakdown, 85-95% efficiency
+- Readiness: 70-100 score, temperature deviation, HRV balance
+
 ## Testing
 
 Test coverage includes:
@@ -123,3 +171,4 @@ Test coverage includes:
 - Oura API integration (mocked)
 - Patient summary calculations
 - Webhook verification and handling
+- Demo mode functionality with realistic mock data

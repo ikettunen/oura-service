@@ -1,22 +1,30 @@
 const axios = require('axios');
+const mockData = require('./mockOuraData');
 
 const OURA_API_BASE_URL = 'https://api.ouraring.com/v2';
+const DEMO_API_KEY = 'OURA_DEMO_KEY';
 
 /**
  * Oura API Integration
  * Handles communication with Oura Ring API v2
+ * 
+ * Special: Use API key "OURA_DEMO_KEY" to get mock data for testing
  */
 class OuraAPI {
   constructor(accessToken) {
     this.accessToken = accessToken;
-    this.client = axios.create({
-      baseURL: OURA_API_BASE_URL,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 10000
-    });
+    this.isDemoMode = accessToken === DEMO_API_KEY;
+    
+    if (!this.isDemoMode) {
+      this.client = axios.create({
+        baseURL: OURA_API_BASE_URL,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+    }
   }
 
   /**
@@ -26,6 +34,10 @@ class OuraAPI {
    * @returns {Promise<Object>} Daily activity data
    */
   async getDailyActivity(startDate, endDate) {
+    if (this.isDemoMode) {
+      return Promise.resolve(mockData.generateMockActivity(startDate, endDate));
+    }
+    
     try {
       const response = await this.client.get('/usercollection/daily_activity', {
         params: {
@@ -46,6 +58,14 @@ class OuraAPI {
    * @returns {Promise<Object>} Daily activity document
    */
   async getDailyActivityById(documentId) {
+    if (this.isDemoMode) {
+      // Extract date from document ID (format: activity-YYYY-MM-DD)
+      const dateMatch = documentId.match(/activity-(\d{4}-\d{2}-\d{2})/);
+      const date = dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
+      const mockResponse = mockData.generateMockActivity(date, date);
+      return Promise.resolve(mockResponse.data[0] || {});
+    }
+    
     try {
       const response = await this.client.get(`/usercollection/daily_activity/${documentId}`);
       return response.data;
@@ -62,6 +82,10 @@ class OuraAPI {
    * @returns {Promise<Object>} Daily sleep data
    */
   async getDailySleep(startDate, endDate) {
+    if (this.isDemoMode) {
+      return Promise.resolve(mockData.generateMockSleep(startDate, endDate));
+    }
+    
     try {
       const response = await this.client.get('/usercollection/daily_sleep', {
         params: {
@@ -83,6 +107,10 @@ class OuraAPI {
    * @returns {Promise<Object>} Daily readiness data
    */
   async getDailyReadiness(startDate, endDate) {
+    if (this.isDemoMode) {
+      return Promise.resolve(mockData.generateMockReadiness(startDate, endDate));
+    }
+    
     try {
       const response = await this.client.get('/usercollection/daily_readiness', {
         params: {
@@ -104,6 +132,10 @@ class OuraAPI {
    * @returns {Promise<Object>} Heart rate data
    */
   async getHeartRate(startDate, endDate) {
+    if (this.isDemoMode) {
+      return Promise.resolve(mockData.generateMockHeartRate(startDate, endDate));
+    }
+    
     try {
       const response = await this.client.get('/usercollection/heartrate', {
         params: {

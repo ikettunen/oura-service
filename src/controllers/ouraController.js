@@ -149,7 +149,7 @@ async function getPatientSummary(req, res) {
       period: '7 days',
       summary: {
         averageSteps: Math.round(avgSteps),
-        averageSleepScore: Math.round(avgReadinessScore),
+        averageSleepScore: Math.round(avgSleepScore),
         averageReadinessScore: Math.round(avgReadinessScore),
         totalDays: activity.data.length
       },
@@ -234,11 +234,84 @@ function handleWebhook(req, res) {
   }
 }
 
+/**
+ * Get batch patient summaries
+ */
+async function getBatchPatientSummary(req, res) {
+  try {
+    const { patientIds } = req.body;
+
+    if (!patientIds || !Array.isArray(patientIds)) {
+      return res.status(400).json({
+        error: { message: 'patientIds array required' }
+      });
+    }
+
+    const results = [];
+    const errors = [];
+
+    // Get last 7 days date range
+    const end = new Date().toISOString().split('T')[0];
+    const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    // Process each patient
+    for (const patientId of patientIds) {
+      try {
+        const patientDataStr = await keyStore.get(`oura:patient:${patientId}`);
+        
+        if (!patientDataStr) {
+          errors.push({ patientId, error: 'Patient not linked to Oura account' });
+          continue;
+        }
+
+        const patientData = JSON.parse(patientDataStr);
+        const ouraApi = new OuraAPI(patientData.apiKey);
+
+        // Fetch data
+        const [activity, sleep, readiness] = await Promise.all([
+          ouraApi.getDailyActivity(start, end),
+          ouraApi.getDailySleep(start, end),
+          ouraApi.getDailyReadiness(start, end)
+        ]);
+
+        // Calculate averages
+        const avgSteps = activity.data.reduce((sum, d) => sum + (d.steps || 0), 0) / activity.data.length;
+        const avgSleepScore = sleep.data.reduce((sum, d) => sum + (d.score || 0), 0) / sleep.data.length;
+        const avgReadinessScore = readiness.data.reduce((sum, d) => sum + (d.score || 0), 0) / readiness.data.length;
+
+        results.push({
+          patientId,
+          period: '7 days',
+          summary: {
+            averageSteps: Math.round(avgSteps),
+            averageSleepScore: Math.round(avgSleepScore),
+            averageReadinessScore: Math.round(avgReadinessScore),
+            totalDays: activity.data.length
+          }
+        });
+      } catch (err) {
+        errors.push({ patientId, error: err.message });
+      }
+    }
+
+    res.json({
+      data: results,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    req.log.error({ error }, 'Error fetching batch patient summaries');
+    res.status(500).json({
+      error: { message: 'Failed to fetch batch Oura summaries' }
+    });
+  }
+}
+
 module.exports = {
   linkPatient,
   getPatientData,
   getPatientSummary,
   unlinkPatient,
   verifyWebhook,
-  handleWebhook
+  handleWebhook,
+  getBatchPatientSummary
 };

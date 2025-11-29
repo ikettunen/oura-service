@@ -12,4 +12,7 @@ router.get('/patient/:patientId', ouraController.getPatientData);
 router.get('/patient/:patientId/summary', ouraController.getPatientSummary);
 router.delete('/patient/:patientId', ouraController.unlinkPatient);
 
+// Batch operations
+router.post('/patients/batch/summary', ouraController.getBatchPatientSummary);
+
 module.exports = router;
